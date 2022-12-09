@@ -17,7 +17,14 @@
 	)
 )
 
-(defun get-overlap (ranges)
+(defun cmp-pt-one (fst-start fst-end snd-start snd-end)
+	(or
+		(and (<= fst-start snd-start) (>= fst-end snd-end))
+		(and (<= snd-start fst-start) (>= snd-end fst-end))
+	)
+)
+
+(defun get-overlap (ranges cmp)
 	(loop for (fst snd) on ranges by #'cddr
 		for res = 
 			(let ( 
@@ -26,10 +33,7 @@
 			  (snd-start (first snd))
 			  (snd-end (second snd))
 			 )
-				(if (or
-						(and (<= fst-start snd-start) (>= fst-end snd-end))
-						(and (<= snd-start fst-start) (>= snd-end fst-end))
-					)
+				(if (funcall cmp fst-start fst-end snd-start snd-end)
 					(list fst snd)
 					()
 				)
@@ -37,4 +41,14 @@
 	)
 )
 
-(length (get-overlap (get-ranges)))
+(length (get-overlap (get-ranges) #'cmp-pt-one))
+
+; part 2
+
+(defun cmp-pt-two (fst-start fst-end snd-start snd-end)
+	(not
+		(or (> fst-start snd-end) (< fst-end snd-start))
+	)
+)
+
+(length (get-overlap (get-ranges) #'cmp-pt-two))

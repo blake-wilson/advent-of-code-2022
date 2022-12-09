@@ -2,7 +2,7 @@
 	(with-open-file (stream "input")
 		(loop for line = (read-line stream nil)
 			while line
-			append (progn
+			append
 				(let* ((members (uiop:split-string line :separator ","))
 						(fst (uiop:split-string (first members) :separator "-"))
 						(snd (uiop:split-string (second members) :separator "-"))
@@ -12,7 +12,6 @@
 						(list (parse-integer (first snd)) (parse-integer (second snd)))
 					)
 				)
-			)
 		)
 	)
 )

@@ -3,7 +3,6 @@
     (with-open-file (stream "input")
         ; first 8 lines are the stacks
         (setf stacks (loop for i from 1 to 8
-          ; do (print (read-line stream nil))
           collect (read-line stream nil)
         ))
         ; two lines before moves begin

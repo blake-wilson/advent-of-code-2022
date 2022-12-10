@@ -34,7 +34,6 @@
 			 )
 				(if (funcall cmp fst-start fst-end snd-start snd-end)
 					(list fst snd)
-					()
 				)
 		) when res collect res
 	)

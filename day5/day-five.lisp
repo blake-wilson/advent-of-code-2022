@@ -54,14 +54,28 @@
   )
 )
 
+(defun move-mult (stacks move)
+  (let ((count (first move)) (src (- (second move) 1)) (dst (- (third move) 1)))
+    (setf (nth dst stacks) (append (subseq (nth src stacks) 0 count) (nth dst stacks)))
+    (setf (nth src stacks) (nthcdr count (nth src stacks)))
+    stacks
+  )
+)
+
+(defun move-crates (move-func)
+  (let* ((input (get-input))
+         (stacks (make-stacks (first input)))
+         (moves (second input))
+    )
+    (loop for move in moves
+      do (setq stacks (funcall move-func stacks move))
+    )
+    (mapcar 'first stacks)
+  )
+)
 
 ; part one result
-(let* ((input (get-input))
-       (stacks (make-stacks (first input)))
-       (moves (second input))
-  )
-  (loop for move in moves
-    do (setq stacks (move stacks move))
-  )
-  (mapcar 'first stacks)
-)
+(move-crates 'move)
+
+; part two
+(move-crates 'move-mult)

@@ -7,7 +7,7 @@
 						(fst (uiop:split-string (first members) :separator "-"))
 						(snd (uiop:split-string (second members) :separator "-"))
 					)
-					(list 
+					(list
 						(list (parse-integer (first fst)) (parse-integer (second fst)))
 						(list (parse-integer (first snd)) (parse-integer (second snd)))
 					)

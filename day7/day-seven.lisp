@@ -16,6 +16,7 @@
   (dirs '() :type list)
   (files '() :type list)
   (parent nil :type (or dir null))
+  (size 0 :type integer)
 )
 
 (defun get-input ()
@@ -69,15 +70,10 @@
   )
 )
 
-
-; (defun read-result (items)
-;
-; )
-
-(defparameter root-dir)
+(defparameter root-dir (make-dir :dirs '()))
 
 (defun run-cmds (cmds)
-  (let ((dir (make-dir)))
+  (let ((dir root-dir))
     (loop for cmd in cmds
           do (let (
                    (command (first (first cmd)))
@@ -98,11 +94,39 @@
                         )
                     )
                 )
-                ; (arg (second cmd)
           )
      )
     dir
    )
 )
 
+(defun read-files (dir files-list)
+  (let* ((files (append (dir-files dir)
+            (loop for d in (mapcar 'cdr (dir-dirs dir))
+                  append (read-files d (append files-list (dir-files d)))
+            ))
+        ))
+    (setf (dir-size dir) (apply '+ (mapcar 'file-size files)))
+    files
+  )
+)
+
+(defun map-dirs (dir mapfn)
+  (loop for d in (mapcar 'cdr (dir-dirs dir))
+    do (progn
+         (funcall mapfn d)
+         (map-dirs d mapfn)
+    )
+  )
+)
+
+(defun get-lt-100k-sum ()
+    (apply '+ (let ((collector '()))
+      (map-dirs (cdr (first (dir-dirs root-dir))) (lambda (d) (if (<= (dir-size d) 100000) (setf collector (cons (dir-size d) collector)))))
+      collector
+    ))
+)
+
+(run-cmds (read-lines))
+(read-files root-dir '())
 

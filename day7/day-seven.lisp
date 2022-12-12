@@ -1,11 +1,6 @@
 ; prevent endless loops when printing dirs
 (setf *print-circle* t)
 
-(defstruct command
-  (name "" :type string)
-  (arguments '() :type list)
-)
-
 (defstruct file
   (name "" :type string)
   (size 0 :type integer)
@@ -19,8 +14,13 @@
   (size 0 :type integer)
 )
 
-(defun get-input ()
-  (uiop:read-file-lines "input")
+(defun read-command-output (stream)
+  (loop for char = (peek-char nil stream nil)
+            if (and char (char/= char #\$))
+                collect (uiop:split-string (read-line stream nil) :separator " ")into res
+            else
+                return (values res)
+  )
 )
 
 (defun read-lines ()
@@ -32,15 +32,6 @@
         if (not (peek-char nil stream nil))
             return (values vals)
        )
-  )
-)
-
-(defun read-command-output (stream)
-  (loop for char = (peek-char nil stream nil)
-            if (and char (char/= char #\$))
-                collect (uiop:split-string (read-line stream nil) :separator " ")into res
-            else
-                return (values res)
   )
 )
 
@@ -122,7 +113,7 @@
 
 (defun get-lt-100k-sum ()
     (apply '+ (let ((collector '()))
-      (map-dirs (cdr (first (dir-dirs root-dir))) (lambda (d) (if (<= (dir-size d) 100000) (setf collector (cons (dir-size d) collector)))))
+      (map-dirs root-dir (lambda (d) (if (<= (dir-size d) 100000) (setf collector (cons (dir-size d) collector)))))
       collector
     ))
 )
@@ -130,3 +121,15 @@
 (run-cmds (read-lines))
 (read-files root-dir '())
 
+; part 1
+(get-lt-100k-sum)
+
+; part 2
+(defun smallest-over-limit ()
+  (let ((collector '())
+        (space-needed (- (dir-size root-dir) (- 70000000 30000000))))
+        (map-dirs root-dir (lambda (d) (if (>= (dir-size d) space-needed)(setf collector (cons (dir-size d) collector)))))
+        (apply 'min collector)
+  )
+)
+(smallest-over-limit)

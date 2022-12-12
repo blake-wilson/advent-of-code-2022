@@ -67,3 +67,49 @@
                           (append (find-visible-b-to-t grid)))))
                      :test (lambda (a b) (and (equal (first a) (first b)) (equal (second a) (second b)))))
 )
+
+; part 1
+(length (find-visible-all grid))
+
+; begin part 2
+(defun get-view (grid x y)
+  (let ((height (aref grid y x))
+    (score-components (make-array 4)))
+    (loop for i from (+ x 1) below width
+          do (setf (aref score-components 0) (+ 1 (aref score-components 0)))
+          if (<= height (aref grid y i)) return '()
+     )
+    (loop for i from (- x 1) downto 0
+          do (setf (aref score-components 1) (+ 1 (aref score-components 1)))
+          if (<= height (aref grid y i)) return '()
+     )
+    (loop for j from (+ y 1) below width
+          do (setf (aref score-components 2) (+ 1 (aref score-components 2)))
+          if (<= height (aref grid j x)) return '()
+     )
+    (loop for j from (- y 1) downto 0
+          do (setf (aref score-components 3) (+ 1 (aref score-components 3)))
+          if (<= height (aref grid j x)) return '()
+     )
+    score-components
+  )
+)
+
+(defun find-view-scores (grid)
+  (loop for i from 1 below (- width 1)
+    append (loop for j from 1 below (- width 1)
+       collect (list (list i j) (get-view grid i j))
+    )
+  )
+)
+
+
+(defun max-score (scores)
+  (apply 'max (mapcar
+                (lambda (comps)
+                    (apply '* (coerce (second comps) 'list)))
+                    scores))
+)
+
+; part 2
+(max-score (find-view-scores grid))

@@ -12,7 +12,6 @@
 	)
 )
 
-
 (defun add-pos (fst snd)
 	(make-pos :x (+ (pos-x fst) (pos-x snd)) :y (+ (pos-y fst) (pos-y snd)))
 )
@@ -41,19 +40,24 @@
 	)
 )
 
-(defun make-moves (moves)
+(defun make-moves (moves num-knots)
 	(let (
-			(head-pos (make-pos :x 0 :y 0))
-			(tail-pos (make-pos :x 0 :y 0))
+                    (rope (make-list num-knots :initial-element (make-pos :x 0 :y 0)))
 		)
 		(mapcar (lambda (move)
-			(let ((updated (update-head-and-tail head-pos tail-pos move)))
-				(progn
-					(setf head-pos (first updated))
-					(setf tail-pos (second updated))
-                                        ; (list head-pos tail-pos)
-				)
-		)) moves)
+                        ; first, move head of the rope
+                        (progn (setf (first rope) (add-pos (first rope) move))
+                            (loop for i from 1 below (length rope)
+                                  do
+                                      (let* ((head-pos (nth (- i 1) rope))
+                                             (tail-pos (nth i rope))
+                                             (updated (update-head-and-tail-pt2 head-pos tail-pos)))
+			              	    (setf (nth i rope) updated)
+                                      )
+                            )
+                            (make-pos :x (pos-x (car (last rope))) :y (pos-y (car (last rope))))
+                        ))
+                moves)
 	)
 )
 
@@ -96,5 +100,32 @@
         )
 )
 
+(defun update-head-and-tail-pt2 (head-pos tail-pos)
+  (let (
+        (x-move
+		(if (not (is-touching head-pos tail-pos))
+                    (if (/= (pos-x head-pos) (pos-x tail-pos))
+                          (if (> (pos-x head-pos) (pos-x tail-pos)) 1 -1)
+                          0
+                    )
+                    0
+                ))
+	(y-move
+		(if (not (is-touching head-pos tail-pos))
+                    (if (/= (pos-y head-pos) (pos-y tail-pos))
+                          (if (> (pos-y head-pos) (pos-y tail-pos)) 1 -1)
+                          0
+                    )
+                    0
+                )
+          )
+    )
+    (add-pos tail-pos (make-pos :x x-move :y y-move))
+  )
+)
+
 ; part 1
-(length (remove-duplicates (make-moves (read-moves)) :test 'equalp))
+(length (remove-duplicates (make-moves (read-moves) 2) :test 'equalp))
+
+; part 2
+(length (remove-duplicates (make-moves (read-moves) 10) :test 'equalp))

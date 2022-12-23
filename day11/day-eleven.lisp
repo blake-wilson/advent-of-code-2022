@@ -79,7 +79,7 @@
         do (progn
              (setf item (funcall (monkey-operation monkey) item))
              (if (not second-part)
-               (setf item (floor item 3)) ; monkey gets bored with item - comment for part 2
+               (setf item (floor item 3)) ; monkey gets bored with item
              )
              (if (> item common-mult)
                  (setf item (mod item common-mult))
@@ -105,7 +105,7 @@
       (apply '* (mapcar 'monkey-num-items-inspected (subseq monkeys 0 2)))
 )
 
-; part two sol
+; part two sol.
 (let ((monkeys (init-monkeys)))
       (loop for i from 0 below 10000 do (do-round monkeys :second-part t))
       (sort monkeys (lambda (m1 m2) (> (monkey-num-items-inspected m1) (monkey-num-items-inspected m2))))

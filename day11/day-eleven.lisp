@@ -7,6 +7,8 @@
   (num-items-inspected 0 :type integer)
 )
 
+(defparameter common-mult (* 2 7 3 17 11 19 5 13))
+
 (defun add-item-to-monkey (monkey item)
   (setf (monkey-items monkey) (cons item (monkey-items monkey)))
 )
@@ -72,40 +74,40 @@
     )
 )
 
-(defun do-round (monkeys)
-  (mapcar (lambda (monkey) (do-monkey-round monkey monkeys)) monkeys)
+(defun do-monkey-round (monkey all-monkeys &key (second-part nil))
+  (loop for item in (monkey-items monkey)
+        do (progn
+             (setf item (funcall (monkey-operation monkey) item))
+             (if (not second-part)
+               (setf item (floor item 3)) ; monkey gets bored with item - comment for part 2
+             )
+             (if (> item common-mult)
+                 (setf item (mod item common-mult))
+             )
+             (incf (monkey-num-items-inspected monkey) 1)
+             (if (funcall (monkey-test monkey) item)
+                      (add-item-to-monkey (nth (monkey-test-success-monkey monkey) all-monkeys) item)
+                      (add-item-to-monkey (nth (monkey-test-fail-monkey monkey) all-monkeys) item)
+                 )
+        )
+   )
+  (setf (monkey-items monkey) '())
 )
 
-(defun delete-nth (sequence n)
-    (let ((g (gensym)))
-        (setf (elt sequence n) g)
-        (delete g sequence)
-    )
+(defun do-round (monkeys &key (second-part nil))
+  (mapcar (lambda (monkey) (do-monkey-round monkey monkeys :second-part second-part)) monkeys)
 )
-
-(defun do-monkey-round (monkey all-monkeys)
-  (let ((dst-monkey-item-success (nth (monkey-test-success-monkey monkey) all-monkeys))
-        (dst-monkey-item-fail (nth (monkey-test-fail-monkey monkey) all-monkeys)))
-    (loop for item in (monkey-items monkey)
-          do (progn
-               (setf item (funcall (monkey-operation monkey) item))
-               (setf item (floor item 3)) ; monkey gets bored with item
-               (incf (monkey-num-items-inspected monkey) 1)
-               (if (funcall (monkey-test monkey) item)
-                        (add-item-to-monkey (nth (monkey-test-success-monkey monkey) monkeys) item)
-                        (add-item-to-monkey (nth (monkey-test-fail-monkey monkey) monkeys) item)
-                   )
-          )
-     )
-    (setf (monkey-items monkey) '())
-  )
-)
-
-(defparameter monkeys (init-monkeys))
-
-(loop for i from 0 below 20 do (do-round monkeys))
-
-(sort monkeys (lambda (m1 m2) (> (monkey-num-items-inspected m1) (monkey-num-items-inspected m2))))
 
 ; part one sol.
-(apply '* (mapcar 'monkey-num-items-inspected (subseq monkeys 0 2)))
+(let ((monkeys (init-monkeys)))
+      (loop for i from 0 below 20 do (do-round monkeys))
+      (sort monkeys (lambda (m1 m2) (> (monkey-num-items-inspected m1) (monkey-num-items-inspected m2))))
+      (apply '* (mapcar 'monkey-num-items-inspected (subseq monkeys 0 2)))
+)
+
+; part two sol
+(let ((monkeys (init-monkeys)))
+      (loop for i from 0 below 10000 do (do-round monkeys :second-part t))
+      (sort monkeys (lambda (m1 m2) (> (monkey-num-items-inspected m1) (monkey-num-items-inspected m2))))
+      (apply '* (mapcar 'monkey-num-items-inspected (subseq monkeys 0 2)))
+)

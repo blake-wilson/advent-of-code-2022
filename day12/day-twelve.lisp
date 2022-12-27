@@ -38,21 +38,19 @@
 	)
 )
 
-(defun table-key (square)
+(defun table-key (grid square)
   (+ (* (square-row square) (array-dimension grid 1)) (square-col square))
 )
 
 (defun unvisited-neighbors (grid square unvisited-table)
   (let ((neighbors (neighbors grid square)))
-    (remove-if-not (lambda (sq) (gethash (table-key sq) unvisited-table)) neighbors)
+    (remove-if-not (lambda (sq) (gethash (table-key grid sq) unvisited-table)) neighbors)
   )
 )
 
-(defparameter grid (make-array '(41 161) :initial-element (make-square)))
-(defparameter starting-point '())
-
 (defun build-grid (input)
-	(let ((row 0))
+	(let ((row 0)
+             (grid (make-array '(41 161) :initial-element (make-square))))
 		(progn (loop for line = (read-line input nil)
 				while line
 				do (progn
@@ -60,7 +58,6 @@
 							do (
 								let* (
 									(end (equal (char line col) #\E))
-                                                                        (start (equal (char line col) #\S))
 									(height
 										(case (char line col)
 											(#\E (char-code #\z))
@@ -68,15 +65,15 @@
 											(otherwise (char-code (char line col)))
 										)
 									)
-                                                                        (cost (if start 0 -1))
 								)
-									(setf (aref grid row col) (make-square :row row :col col :end end :height height :path-cost cost))
+									(setf (aref grid row col) (make-square :row row :col col :end end :height height :path-cost -1))
 							)
 						)
 					(incf row)
 				)
 			)
 		)
+                grid
 	)
 )
 
@@ -86,38 +83,11 @@
 	)
 )
 
-; (defun traverse-grid (square grid curr-score depth max-depth)
-; 	(mapcar
-; 		(lambda (next)
-;                         ; (if (and (eq (square-row square) 20) (eq (square-col square) 139))
-;                         ;     (format t "traversing row ~d col ~d score ~d next-score ~d~%" (square-row square) (square-col square) curr-score (square-path-cost next))
-;                         ; )
-; 			(if (and (< depth max-depth) (<= (- (square-height next) (square-height square)) 1))
-; 				(if (or (eq (square-path-cost next) -1) (< curr-score (- (square-path-cost next) 1)))
-; 					(if (not (square-end square))
-; 						(progn
-; 							(setf (square-path-cost square) curr-score)
-; 							(setf (aref grid (square-row square) (square-col square)) square)
-; 							(traverse-grid next grid (+ curr-score 1) (+ depth 1) max-depth)
-; 						)
-; 						(progn
-; 							;(format t "ended with score of ~d~%~%" curr-score)
-; 							curr-score
-; 						)
-; 					)
-; 					; (format t "done~%")
-; 				)
-; 				; (format t "height diff was ~d~%" (- (square-height square) (square-height next)))
-; 			)
-; 		)
-; 		(neighbors grid square))
-; )
-
-(defun populate-unvisited (unvisited-table)
+(defun populate-unvisited (grid unvisited-table)
   (loop for i from 0 below (array-dimension grid 0)
         do (loop for j from 0 below (array-dimension grid 1)
             do (
-                    setf (gethash (table-key (aref grid i j)) unvisited-table) (aref grid i j)
+                    setf (gethash (table-key grid (aref grid i j)) unvisited-table) (aref grid i j)
             )
         )
   )
@@ -127,33 +97,33 @@
 (defun least-dist-unvisited (unvisited-table)
   (let ((least-dist 10000)
         (square nil))
-    (maphash (lambda (key val) (
+    (loop for val being each hash-value of unvisited-table do (
         if (and (/= (square-path-cost val) -1) (> least-dist (square-path-cost val)))
             (progn
                 (setf least-dist (square-path-cost val))
                 (setf square val)
             )
-    )) unvisited-table)
+    ))
     square
   )
 )
 
 (defun count-unvisited (unvisited-table)
   (let ((count 0))
-    (maphash (lambda (key val) (if (/= -1 (square-path-cost val)) (incf count 1))) unvisited-table)
-    count
+        (loop for val being each hash-value of unvisited-table do
+              (if (/= -1 (square-path-cost val)) (incf count 1)))
+        count
   )
 )
 
-
-(defun dijkstra (grid start iters)
+(defun dijkstra (grid start end)
   (let (
         (curr start)
         (unvisited (make-hash-table :test #'equal))
     )
-    (populate-unvisited unvisited)
+    (populate-unvisited grid unvisited)
+    (setf (square-path-cost (aref grid (square-row start) (square-col start))) 0)
     (loop
-      ; for i from 0 below iters
       while (> (count-unvisited unvisited) 0)
       do (
         progn
@@ -162,41 +132,59 @@
             (mapcar (lambda (next)
                 (if (and (<= (- (square-height next) (square-height curr)) 1))
 	           (if (or (eq (square-path-cost next) -1) (< (square-path-cost curr) (- (square-path-cost next) 1)))
-	           	(if (not (square-end next))
 	           		(progn
 	           			(setf (square-path-cost next) (+ (square-path-cost curr) 1))
 	           			(setf (aref grid (square-row next) (square-col next)) next)
-	           			(setf (gethash (table-key next) unvisited) next)
+	           			(setf (gethash (table-key grid next) unvisited) next)
                                         ; (format t "set unvisited to ~S~%" next)
 	           		)
 	           		(progn
-	           			(format t "ended with score of ~d~%~%" (square-path-cost curr))
+	           			; (format t "ended with score of ~d~%~%" (square-path-cost curr))
+	           			(setf (aref grid (square-row next) (square-col next)) next)
 	           		)
-	           	)
 	           	; (format t "done; next cost is ~d~%" (square-path-cost next))
 	           )
 	           ; (format t "height diff was ~d~%" (- (square-height square) (square-height next)))
             )) (unvisited-neighbors grid curr unvisited))
-            (remhash (table-key curr) unvisited)
+            (remhash (table-key grid curr) unvisited)
             (let ((next (least-dist-unvisited unvisited)))
               (if next
                 (setf curr next)
-                (progn (format t "no next neighbor~%") (return (square-path-cost curr)))
               )
             )
         )
       )
+    (square-path-cost end)
   )
 )
 
+; part 1
+(let ((grid (read-grid)))
+    (dijkstra grid (aref grid 20 0) (aref grid 20 139))
+)
 
-(read-grid)
-; (traverse-grid (aref grid 20 0) grid 0 0 10000)
-(dijkstra grid (aref grid 20 0) 2)
+; part 2
+(defun get-a-elev-points (grid)
+  (loop for i from 0 below (array-dimension grid 0)
+        append (loop for j from 0 below (array-dimension grid 1)
+            append (
+                     if (= (square-height (aref grid i j)) (char-code #\a))
+                        (list (aref grid i j))
+            )
+        )
+  )
+)
 
-; end
-; (aref grid 20 139)
-
-
-; too high
-; 1478
+; sol. takes a while to execute
+(let ((min-dist -1)
+      (point (list 0 0)))
+    (mapcar (lambda (sq) (
+                         let* ((grid (read-grid))
+                            (sq-dist (dijkstra grid (aref grid (square-row sq) (square-col sq)) (aref grid 20 139))))
+                            (if (or (= min-dist -1) (and (/= -1 sq-dist) (< sq-dist min-dist)))
+                                    (progn (< sq-dist min-dist) (format t "setting min dist to ~d~%" sq-dist)
+                                        (setf min-dist sq-dist) (setf point (list (square-row sq) (square-col sq))))
+                            ))
+                        )(get-a-elev-points (read-grid)))
+  (list min-dist point)
+)

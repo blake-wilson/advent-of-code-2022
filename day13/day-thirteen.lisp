@@ -161,3 +161,40 @@
 
 ; part 1 solution
 (get-right-order-index-sum)
+
+; part 2 stuff
+(defun packet-sort-func (packet1 packet2)
+  (cmp packet1 packet2)
+)
+
+(defun read-packet-from-stream (stream)
+  (let ((line (read-line stream nil)))
+    (if (> (length line) 0)
+        (parse-packet line)
+    )
+  )
+)
+
+(defun read-all-packets ()
+  (with-open-file (stream "input")
+    (loop
+        while (peek-char nil stream nil)
+        append (read-packet-from-stream stream)
+    )
+  )
+)
+
+; part 2 solution
+(let ((sorted
+       (sort (append (read-all-packets)
+                      (parse-packet "[[2]]")
+                      (parse-packet "[[6]]"))
+              'packet-sort-func)
+  ))
+  (apply '* (loop for i from 0 below (length sorted)
+        for val = (nth i sorted)
+        append (if (or (equal '((2)) val) (equal '((6)) val))
+                    (list (+ i 1))
+                )
+  ))
+)

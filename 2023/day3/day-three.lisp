@@ -1,0 +1,153 @@
+(defun read-grid ()
+  (with-open-file (stream "input")
+    (let ((grid (make-array '(140 1))))
+    (loop for line = (read-line stream nil)
+          while line
+          do (setf grid (add-to-grid grid line))
+    )
+      (setf grid (adjust-array grid (list (car (array-dimensions grid)) (- (nth 1 (array-dimensions grid)) 1))))
+      grid
+    )
+  )
+)
+
+(defun add-to-grid (grid line)
+  (let ((curr-rows (nth 1 (array-dimensions grid)))
+        (curr-cols (car (array-dimensions grid))))
+    (loop for idx from 0 to (- (length line) 1)
+          do
+          (setf (aref grid idx (- curr-rows 1)) (char line idx))
+    )
+    (setf grid (adjust-array grid (list curr-cols (+ 1 curr-rows))))
+    grid
+  )
+)
+
+(defun neighbors (grid x y)
+  (let ((neighbor-coords (list (clamp grid (+ x 1) y)
+                         (clamp grid (- x 1) y)
+                         (clamp grid x (+ y 1))
+                         (clamp grid x (- y 1))
+                         (clamp grid (+ x 1) (- y 1))
+                         (clamp grid (- x 1) (- y 1))
+                         (clamp grid (- x 1) (+ y 1))
+                         (clamp grid (+ x 1) (+ y 1)))
+        ))
+    (loop for coords in neighbor-coords
+          collect (aref grid (first coords) (second coords)))
+    )
+)
+
+(defun get-part-numbers (grid)
+  (let ((part-numbers '()))
+  (loop for y from 0 to (- (nth 1 (array-dimensions grid)) 1)
+        do (loop for x from 0 to (- (car (array-dimensions grid)) 1)
+                 do (progn (format t "x is ~d~C" x #\Newline)
+                     (if (is-part-num grid x y)
+                         (multiple-value-bind (part-num len) (read-one-val grid x y)
+                           (incf x (- len 1))
+                           (setf part-numbers (append part-numbers (list (parse-integer (coerce part-num 'string)))))
+                         )
+                      )
+                 )
+           )
+  )
+  part-numbers
+))
+
+(defun gear-parts (grid x y)
+  (let ((is-part nil)
+    (parts '()))
+    (if (char=  #\* (aref grid x y))
+        (loop for y-idx from (clamp-y grid (- y 1)) to (clamp-y grid (+ y 1))
+              do (loop for x-idx from (clamp-x grid (- x 1)) to (clamp-x grid (+ x 1))
+                       do (
+                         if (is-part-num grid x-idx y-idx)
+                             (multiple-value-bind (part-num len) (read-one-val grid x-idx y-idx)
+                               (incf x-idx (- len 1))
+                               (setf parts (append parts (list (parse-integer (coerce part-num 'string)))))
+                             )
+                        )
+                 )
+        )
+    )
+    parts
+  )
+)
+
+(defun is-part-num (grid x y)
+  (let ((is-part nil)
+    (n (neighbors grid x y)))
+    (if (digit-char-p (aref grid x y))
+        (loop for neighbor in n
+            do (if (and (char/= neighbor #\.) (not (digit-char-p neighbor)))
+                (setf is-part t)
+            )
+        )
+    )
+    is-part
+  )
+)
+
+; clamp the provided coordinates to the bounds of the grid
+(defun clamp (grid x y)
+  (let ((new-x x) (new-y y)
+        (num-rows (nth 1 (array-dimensions grid)))
+        (num-cols (car (array-dimensions grid))))
+      (if (>= y num-rows)
+          (setf new-y (- num-rows 1))
+      )
+    (if (< y 0)
+        (setf new-y 0)
+    )
+    (if (>= x num-cols)
+        (setf new-x (- num-cols 1))
+    )
+    (if (< x 0)
+        (setf new-x 0)
+    )
+    (list new-x new-y)
+  ))
+
+(defun clamp-x (grid x)
+  (car (clamp grid x 0))
+)
+
+(defun clamp-y (grid y)
+  (nth 1 (clamp grid 0 y))
+)
+
+(defun read-one-val (grid start-x start-y)
+      (let ((before-nums (reverse (loop for idx from (- start-x 1) downto 0
+            while (digit-char-p (aref grid idx start-y))
+            collect (aref grid idx start-y)
+      )))
+      (after-nums (loop for idx from start-x
+             while (and (< idx (car (array-dimensions grid))) (digit-char-p (aref grid idx start-y)))
+                 collect (aref grid idx start-y)
+       )))
+      (values (append before-nums after-nums) (length after-nums))
+  )
+)
+
+; part 1
+(apply '+ (get-part-numbers (read-grid)))
+
+
+; part-2
+(defun get-gear-ratios (grid)
+  (let ((gear-ratio-sum 0))
+      (loop for x from 0 to (- (car (array-dimensions grid)) 1)
+            do (loop for y from 0 to (- (nth 1 (array-dimensions grid)) 1)
+                     do (let ((parts (gear-parts grid x y)))
+                          (if (= (length parts) 2)
+                              (incf gear-ratio-sum (apply '* parts))
+                          )
+                         )
+                )
+      )
+      gear-ratio-sum
+  )
+)
+
+(get-gear-ratios (read-grid)
